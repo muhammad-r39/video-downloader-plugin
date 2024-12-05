@@ -9,8 +9,8 @@ Author URI: https://muhammadrussell.com
 
 // Enqueue necessary JavaScript and CSS
 function vd_enqueue_scripts() {
-    wp_enqueue_script('vd-ajax-script', plugin_dir_url(__FILE__) . 'assets/video-downloader.js', array('jquery'), null, true);
-    wp_enqueue_style('vd-style', plugin_dir_url(__FILE__) . 'assets/style.css');
+    wp_enqueue_script('vd-ajax-script', plugin_dir_url(__FILE__) . 'script.js', array('jquery'), null, true);
+    wp_enqueue_style('vd-style', plugin_dir_url(__FILE__) . 'style.css');
     wp_localize_script('vd-ajax-script', 'vd_ajax_object', array(
         'ajax_url' => admin_url('admin-ajax.php')
     ));
@@ -21,11 +21,13 @@ add_action('wp_enqueue_scripts', 'vd_enqueue_scripts');
 function vd_video_downloader_shortcode() {
     ob_start();
     ?>
-    <div id="vd-container">
-        <input type="text" id="vd-url" placeholder="Enter video URL">
-        <button id="vd-submit">Download</button>
+    <div class="vd-container">
+        <div id="vd-input-container">
+            <input type="text" id="vd-url" placeholder="Enter video URL">
+            <button id="vd-submit">Download</button>
+        </div>
+        <div id="vd-result-container"></div>
     </div>
-		<div id="vd-result-container"></div>
     <?php
     return ob_get_clean();
 }
@@ -66,3 +68,39 @@ function vd_get_video_formats() {
 }
 add_action('wp_ajax_vd_get_video_formats', 'vd_get_video_formats');
 add_action('wp_ajax_nopriv_vd_get_video_formats', 'vd_get_video_formats');
+
+//Handle AJAX request to convert and download video
+function vd_convert_video() {
+    if (isset($_POST['url']) && isset($_POST['format_id'])) {
+        $url = sanitize_text_field($_POST['url']);
+        $format_id = sanitize_text_field($_POST['format_id']);
+
+        // Call the Python API for conversion
+        $response = wp_remote_post('https://video-downloader-427824826532.us-central1.run.app/convert', array(
+            'method'    => 'POST',
+            'body'      => json_encode(array('url' => $url, 'format_id' => $format_id)),
+            'headers'   => array('Content-Type' => 'application/json'),
+            'timeout'   => 300,
+        ));
+
+        if (is_wp_error($response)) {
+            wp_send_json_error(array('message' => 'Failed to contact the server.'));
+        }
+
+        $body = wp_remote_retrieve_body($response);
+        $result = json_decode($body, true);
+
+        if (!empty($result['download_url'])) {
+            wp_send_json_success(array(
+                'download_url' => $result['download_url']
+            ));
+        } else {
+            $error_message = $result['error'] ?? 'Conversion failed. Try again or select a lesser resolution.';
+            wp_send_json_error(array('message' => $error_message));
+        }
+    } else {
+        wp_send_json_error(array('message' => 'URL and Format ID are required.'));
+    }
+}
+add_action('wp_ajax_vd_convert_video', 'vd_convert_video');
+add_action('wp_ajax_nopriv_vd_convert_video', 'vd_convert_video');
