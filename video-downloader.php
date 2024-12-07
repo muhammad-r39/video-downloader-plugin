@@ -23,7 +23,7 @@ function vd_video_downloader_shortcode() {
     ?>
     <div class="vd-container">
         <div id="vd-input-container">
-            <input type="text" id="vd-url" placeholder="Enter video URL">
+            <input type="text" id="vd-url" placeholder="Enter post URL">
             <button id="vd-submit">Download</button>
         </div>
         <div id="vd-result-container"></div>

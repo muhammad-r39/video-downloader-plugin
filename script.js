@@ -51,7 +51,7 @@ jQuery(document).ready(function ($) {
           formats.forEach((format) => {
             if (
               (format.resolution !== null &&
-                !format.resolution.includes("audio only")) ||
+                !format.resolution.includes("audio only2")) ||
               format.resolution == null
             ) {
               let size = format.filesize ? ` - (${format.filesize})` : "";
@@ -64,6 +64,7 @@ jQuery(document).ready(function ($) {
                             : format.resolution
                         }
                         ${size}
+                        ${format.ext == "mp4" ? "(" + format.ext + ")" : ""}
                         <a class="vd-download-btn ${format.ext}"
                             data-format-id="${format.format_id}"
                             href="${format.url}"
